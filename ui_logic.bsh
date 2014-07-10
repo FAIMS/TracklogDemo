@@ -1,0 +1,559 @@
+/*** 'Editable' - you can edit the code below based on the needs ***/
+User user; // don't touch
+String userid;
+
+/*setSyncEnabled(true);
+setFileSyncEnabled(true);*/
+
+makeLocalID(){
+    fetchOne("CREATE TABLE IF NOT EXISTS localSettings (key text primary key, value text);");
+    fetchOne("drop view if exists identifierAsSpreadsheet;");
+    fetchOne("create view identifierAsSpreadsheet as select uuid, group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' ') as response from (select * from latestNonDeletedArchentIdentifiers order by attributename) group by uuid;");
+}
+
+makeLocalID();
+
+onEvent("control/Search/newSurveyUnit", "delayclick", "newSurveyUnit()");
+onEvent("control/Search/newPOI", "delayclick", "newPOI()");
+
+onEvent("control/Search/archentsRadio", "click", "showRecords()");
+
+
+onEvent("control/Search", "load", "setFieldValue(\"control/Search/listOfLastText\",\"5\");setFieldValue(\"control/Search/archentsRadio\",\"SUID\");showRecords()");
+onEvent("control/Search", "show", "showRecords()");
+
+onEvent("control/Search/listOfLast", "click", "loadRecord()");
+
+showRecords(){
+    type = getFieldValue("control/Search/archentsRadio");
+    query = "select uuid, response from identifierAsSpreadsheet join latestnondeletedArchEnt using (uuid) join aenttype using (aenttypeid) where aenttypename like '%"+type+"%' order by aenttimestamp desc limit "+getFieldValue("control/Search/listOfLastText")+";";
+    print(query);
+    results = fetchAll(query);
+    if (!isNull(results)){
+        populateList("control/Search/listOfLast", results);
+    } else {
+
+        populateList("control/Search/listOfLast", fetchOne("select '', 'No entries found';"));
+    }
+}
+
+loadRecord(){
+    print(getListItemValue()+getFieldValue("control/Search/archentsRadio"));
+    if (getListItemValue() != "" ){
+        if (getFieldValue("control/Search/archentsRadio").equals("Survey Unit")){
+            loadSurveyUnit();
+        } else if (getFieldValue("control/Search/archentsRadio").equals("POI")) {
+            loadPOI();
+        }
+    }
+}
+
+//Control Logic
+
+
+setFieldValue("control/Control/refreshText","60");
+
+onEvent("control/Control/refreshGPSButton", "click", "startGPS()");
+//onEvent("control/Control/refreshButton", "click", "setGPSUpdateInterval("+getFieldValue("control/Control/refreshText")+")");
+
+startGPS(){
+    Object intext = getFieldValue("control/Control/internalExternalGPS");
+    if(isNull(intext)){
+        showWarning("Warning", "Please choose whether you would like to connect to internal or external GPS.");
+        return;
+    }
+    setGPSUpdateInterval(Integer.parseInt(getFieldValue("control/Control/refreshText")));
+    if(intext.equals("I")) startInternalGPS();
+    if(intext.equals("E")) startExternalGPS();
+    showToast("Note, this can only be done once. To change the update interval, close the module and start again.");
+}
+
+
+
+//Tracklog
+
+
+onEvent("control/Control/tracktimeButton", "click", "startTimeTrack()");
+onEvent("control/Control/trackdistButton", "click", "startDistTrack()");
+onEvent("control/Control/trackOffButton", "click", "stopTrack()");
+
+setFieldValue("control/Control/tracktimeText", "30");
+setFieldValue("control/Control/trackdistText", "100");
+setFieldValue("control/Control/internalExternalGPS","I");
+
+String tracklogStatus = "Tracklog is Stopped";
+tracklogState = "Stop";
+numTracklogPoints = 0;
+tracklogCurrentStatus = "";
+numTransectPoints = 0;
+
+startTimeTrack(){
+    stopTrack();
+    tracklogState = "Time";
+    startTrackingGPS("time",  Integer.parseInt(getFieldValue("control/Control/tracktimeText")), "saveGPSTrack()");
+}
+
+startDistTrack(){
+    stopTrack();
+    tracklogState = "Distance";
+    startTrackingGPS("distance", Integer.parseInt(getFieldValue("control/Control/trackdistText")), "saveGPSTrack()");
+}
+
+stopTrack(){
+    stopTrackingGPS();
+    numTracklogPoints = 0;
+    numTransectPoints = 0;
+    tracklogState = "Stop";
+    updateTrackStatus();
+}
+
+updateTrackStatus(){
+    switch(tracklogState){
+        case "Time":
+            tracklogStatus = "Tracklog Started - Time: "+getFieldValue("control/Control/tracktimeText")+"s";
+        case "Distance":
+            tracklogStatus = "Tracklog Started - Distance: "+getFieldValue("control/Control/trackdistText")+"m";
+        default:
+            tracklogStatus = "Tracklog is Stopped";
+    }
+    if (numTracklogPoints > 0)
+        tracklogStatus += "\nNumber Tracklog Points collected: "+numTracklogPoints;
+    if (numTransectPoints > 0)
+        tracklogStatus += "\nNumber current transect Points collected: "+numTransectPoints;
+
+    setFieldValue("control/Control/trackStatus", tracklogStatus);
+    setFieldValue("Survey_Unit/Survey_Unit/trackStatus", tracklogStatus);
+}
+Boolean transectEnabled = false;
+
+
+
+
+
+saveGPSTrack() {
+    position = getGPSPosition();
+    if (position == null) return;
+    numTracklogPoints++;
+    updateTrackStatus();
+    List attributes = createAttributeList();
+    
+    attributes.add(createEntityAttribute("Longitude", null, null, "" + position.getLongitude(), null));
+    attributes.add(createEntityAttribute("Latitude", null, null, "" + position.getLatitude(), null ));
+    attributes.add(createEntityAttribute("Heading", null, null, "" + getGPSHeading(), null));
+    attributes.add(createEntityAttribute("Accuracy", null, null, "" + getGPSEstimatedAccuracy(), null));
+    String date = new java.text.SimpleDateFormat("d-MMM-yy HH:MM:ss z").format(new Date());
+    attributes.add(createEntityAttribute("Timestamp", null, null, "" + date, null));
+    teamQuery = fetchOne("select vocabname from vocabulary where vocabid = "+getFieldValue("user/usertab/Team"));
+    attributes.add(createEntityAttribute("TracklogTeam", teamQuery.get(0), null, null, null));
+
+    
+    positionProj = getGPSPositionProjected();
+    Point p = new Point(new MapPos(positionProj.getLongitude(), positionProj.getLatitude()), null, (PointStyle) null, null);
+    ArrayList l = new ArrayList();
+    l.add(p);
+    
+    saveArchEnt(null, "Tracklog", l, attributes);
+
+    if (transectEnabled){
+        numTransectPoints++;
+        attributes.add(createEntityAttribute("SUID", getFieldValue("Survey_Unit/Survey_Unit/Survey_Unit_ID"), null, null, null));
+        attributes.add(createEntityAttribute("Width", getFieldValue("Survey_Unit/Survey_Unit/Total_Transect_Width"), null, null, null));
+
+
+        p = new Point(new MapPos(positionProj.getLongitude(), positionProj.getLatitude()), null, (PointStyle) null, null);
+        l = new ArrayList();
+        l.add(p);
+        
+       transect_id = saveArchEnt(null, "Transect", l, attributes);
+          
+
+        saveEntitiesToRel("TransectSUI", transect_id, survey_unit_id); 
+    }
+}
+
+
+
+//Survey Unit Logic
+onEvent("Survey_Unit/Survey_Unit/Update", "delayclick", "saveSurveyUnit(\"\")");
+onEvent("Survey_Unit/Survey_Unit/Delete", "delayclick", "deleteSurveyUnit()");
+onEvent("Survey_Unit/Survey_Unit/New_POI", "delayclick", "saveSurveyUnit(\"newPOI();\")");
+
+//Brian, turn this into a function to call save
+onEvent("Survey_Unit/Survey_Unit/Finish_SUI", "delayclick", "finishSurveyUnit()");
+onEvent("Survey_Unit/Survey_Unit/Attach_Photo", "click", "attachPictureTo(\"Survey_Unit/Survey_Unit/Photos\")");
+
+String survey_unit_id = null;
+finishSurveyUnit(){
+    saveSurveyUnit("saveGPSTrack();transectEnabled=false;cancelTabGroup(\"Survey_Unit\", false);");
+}
+newSurveyUnit(){
+
+    if (transectEnabled) {
+        showWarning("Already tracking!", "You're already in a transect! Loading it now.");
+        loadSurveyUnitFrom(survey_unit_id);
+        return;
+    }
+    survey_unit_id = null;
+    newTabGroup("Survey_Unit");
+    datetime = fetchOne("select datetime('now', 'localtime');");
+    setFieldValue("Survey_Unit/Survey_Unit/Timestamp", datetime.get(0));
+    setFieldValue("Survey_Unit/Survey_Unit/Participants", getFieldValue("control/Search/TeamMember"));
+    setFieldValue("Survey_Unit/Survey_Unit/Number_of_Walkers", getFieldValue("control/Search/Walker"));
+    autoNumSurveyUnit();
+    transectEnabled = true;
+    saveSurveyUnit("saveGPSTrack();");
+    
+
+
+
+
+}
+
+loadSurveyUnit() {
+    survey_unit_id = getListItemValue();
+    loadSurveyUnitFrom(survey_unit_id);
+}
+
+loadSurveyUnitFrom(archentid) {
+    survey_unit_id = archentid;
+    if (isNull(survey_unit_id)) {
+        showToast("No Survey Unit selected");
+        return;
+    }
+
+    showTabGroup("Survey_Unit", survey_unit_id);
+    Object bar = fetchOne("select datetime(aentTimestamp, 'localtime')  from archentity where uuid = '"+survey_unit_id+"' group by uuid having min(aenttimestamp);");
+    setFieldValue("Survey_Unit/Survey_Unit/Timestamp", bar.get(0));
+}
+
+saveSurveyUnit(String callback) {
+    if (isNull(getFieldValue("Survey_Unit/Survey_Unit/Survey_Unit_ID"))) {
+        showWarning("Validation Error", "Cannot save Survey Unit without identifiers");
+        return;
+    }
+    
+    if (!isNull(survey_unit_id)) {
+        entity = fetchArchEnt(survey_unit_id);
+    }
+    saveTabGroup("Survey_Unit", survey_unit_id, null, null, "survey_unit_id = getLastSavedRecordId();" + callback);
+}
+
+deleteSurveyUnit(){
+    if (!isNull(survey_unit_id)) {
+        showAlert("Confirm Deletion", "Press OK to Delete this Survey Unit!", "reallyDeleteSurveyUnit()", "doNotDelete()");
+    } else {
+        cancelTabGroup("Survey_Unit", true);
+    }
+}
+
+reallyDeleteSurveyUnit() {
+    deleteArchEnt(survey_unit_id);
+    cancelTabGroup("Survey_Unit", false);
+}
+
+loadSurveyUnitAttributes() {
+    populateDropDown("Survey_Unit/Survey_Unit/Landscape_Element", makeVocab("Landscape Element"));
+    populateDropDown("Survey_Unit/Survey_Unit/Vegetation_Structure", makeVocab("Vegetation Structure"));
+    populateDropDown("Survey_Unit/Survey_Unit/Ground_Surface_Visibility", makeVocab("Ground Surface Visibility"));
+}
+
+
+//brian todo make sure localsettings working.
+autoNumSurveyUnit() {
+    Object counter = fetchOne("select foo as foo " +
+      "from (select max(cast(freetext as integer))+1 as foo " +
+             "from latestnondeletedaentvalue join attributekey using (attributeid) " +
+            "where uuid in (select uuid " +
+                             "from latestnondeletedaentvalue ae " +
+                             "join latestnondeletedarchent using (uuid) join aenttype using (aenttypeid) " +
+                            "where aenttypename = 'Survey Unit') " +
+              "and attributename = 'Survey Unit ID');");
+    if(isNull(counter.get(0))) {
+        setFieldValue("Survey_Unit/Survey_Unit/Survey_Unit_ID", "1");
+    } else {
+        setFieldValue("Survey_Unit/Survey_Unit/Survey_Unit_ID", counter.get(0));    
+    }
+}
+
+//Point of Interest Logic
+onEvent("POI/POI/Update", "delayclick", "savePOI(\"\")");
+onEvent("POI/POI/Delete", "delayclick", "deletePOI()");
+onEvent("POI/POI/Attach_Photo", "click", "attachPictureTo(\"POI/POI/Photos\")");
+
+String poi_id = null;
+
+newPOI(){
+    poi_id = null;
+    newTabGroup("POI");
+    setFieldValue("POI/POI/Recorded_By", username);
+    datetime = fetchOne("select datetime('now', 'localtime');");
+    setFieldValue("POI/POI/Timestamp", datetime.get(0));
+    autoNumPOI();
+}
+
+loadPOI() {
+    poi_id = getListItemValue();
+    loadPOIFrom(poi_id);
+}
+
+loadPOIFrom(archentid) {
+    poi_id = archentid;
+    if (isNull(poi_id)) {
+        showToast("No POI selected");
+        return;
+    }
+
+    showTabGroup("POI", poi_id);
+    Object foo = fetchOne("select fname || ' ' || lname from user join archentity using (userid) where uuid = '"+poi_id+"' group by uuid having min(aenttimestamp)");
+    setFieldValue("POI/POI/Recorded_By", foo.get(0));
+    Object bar = fetchOne("select datetime(aentTimestamp, 'localtime')  from archentity where uuid = '"+poi_id+"' group by uuid having min(aenttimestamp);");
+    setFieldValue("POI/POI/Timestamp", bar.get(0));
+}
+
+savePOI(String callback) {
+    if (isNull(getFieldValue("POI/POI/POI_ID"))) {
+        showWarning("Validation Error", "Cannot save POI without identifiers");
+        return;
+    }
+    
+    if (!isNull(poi_id)) {
+        entity = fetchArchEnt(poi_id);
+    }
+    saveTabGroup("POI", poi_id, null, null, "poi_id = getLastSavedRecordId();" + callback);
+}
+
+deletePOI(){
+    if (!isNull(poi_id)) {
+        showAlert("Confirm Deletion", "Press OK to Delete this Point of Interest!", "reallyDeletePOI()", "doNotDelete()");
+    } else {
+        cancelTabGroup("POI", true);
+    }
+}
+
+reallyDeletePOI() {
+    deleteArchEnt(poi_id);
+    cancelTabGroup("POI", false);
+}
+
+loadPOIAttributes() {
+    populateDropDown("POI/POI/Feature_Type", makeVocab("Feature Type"));
+}
+
+//TODO Brian, make sure this is team based.
+
+autoNumPOI() {
+    Object counter = fetchOne("select foo as foo " +
+      "from (select max(cast(freetext as integer))+1 as foo " +
+             "from latestnondeletedaentvalue join attributekey using (attributeid) " +
+            "where uuid in (select uuid " +
+                             "from latestnondeletedaentvalue ae " +
+                             "join latestnondeletedarchent using (uuid) join aenttype using (aenttypeid) " +
+                            "where aenttypename = 'POI') " +
+              "and attributename = 'POI ID');");
+    if(isNull(counter.get(0))) {
+        setFieldValue("POI/POI/POI_ID", "1");
+    } else {
+        setFieldValue("POI/POI/POI_ID", counter.get(0));    
+    }
+}
+
+/*** MISC ***/
+
+saveEntitiesToRel(type, entity1, entity2) {
+    if (isNull(entity1) || isNull(entity2)) return;
+    
+    rel_id = saveRel(null, type, null, null);
+    addReln(entity1, rel_id, null);
+    addReln(entity2, rel_id, null);
+}
+
+saveEntitiesToHierRel(type, entity1, entity2, e1verb, e2verb) {
+    if (isNull(entity1) || isNull(entity2)) return;
+    
+    rel_id = saveRel(null, type, null, null);
+    addReln(entity1, rel_id, e1verb);
+    addReln(entity2, rel_id, e2verb);
+}
+
+makeVocab(String attrib){
+    Object a = fetchAll("select vocabid, vocabname from vocabulary join attributekey using (attributeid) where attributename = '"+attrib+"' ");
+    return a;
+}
+
+makePictureGallery(String attrib){
+    fetchAll("select vocabid, vocabname, pictureurl from vocabulary left join attributekey using (attributeid) where attributename = '" + attrib + "' order by vocabname;");
+}
+
+doNotDelete(){
+    showToast("Delete Cancelled.");
+}
+
+
+/*** 'Uneditable' - you can edit the code below with extreme precaution ***/
+
+DATA_ENTRY_LAYER = "Transect Layer";
+DATA_ENTRY_LAYER_ID = 0;
+
+onEvent("control/Map", "show", "drawTransects()");
+
+
+
+drawTransects(){
+
+    geoms = fetchOne("SELECT uuid, geospatialcolumn FROM latestNonDeletedArchEnt join aenttype using (aenttypeid) where aenttypename = 'Transect'");
+    ps = createPointStyle(10, Color.BLUE, 0.2f, 0.5f);
+
+
+
+}
+
+
+initMap() {
+    setMapZoom("control/Map/map", 15.0f);
+
+    DATA_ENTRY_LAYER_ID = createCanvasLayer("control/Map/map", DATA_ENTRY_LAYER);
+
+    showBaseMap("control/Map/map", "Base Layer", "files/data/maps/BM1.tif");
+
+    isEntity = true;
+    queryName = "Transects";
+    querySQL = "SELECT uuid, aenttimestamp FROM latestNonDeletedArchEnt join aenttype using (aenttypeid) where aenttypename = 'Transect'";
+        
+    addDatabaseLayerQuery("control/Map/map", queryName, querySQL);
+
+    addTrackLogLayerQuery("control/Map/map", "track log entities", 
+        "SELECT uuid, max(aenttimestamp) as aenttimestamp " + 
+        " FROM latestNonDeletedArchent join aenttype using (aenttypeid) " +
+        " where aenttypename = 'Tracklog';");
+    /*        
+    addSelectQueryBuilder("Context/map/map", "Select entity by type", createQueryBuilder(
+        "select uuid " + 
+        "  from latestNonDeletedArchent " + 
+        "  JOIN latestNonDeletedAentValue using (uuid) " + 
+        "  join aenttype using (aenttypeid) " + 
+        "  LEFT OUTER JOIN vocabulary using (vocabid, attributeid) " + 
+        "  where lower(aenttypename) = lower(?) " + 
+        "   group by uuid").addParameter("Type", "RemoteSensingContext"));*/
+        
+    //addLegacySelectQueryBuilder("Context/map/map", "Select geometry by id", "files/data/maps/sydney.sqlite", "Geology100_Sydney", 
+    //    createLegacyQueryBuilder("Select PK_UID from Geology100_Sydney where PK_UID = ?").addParameter("ID", null));
+                    
+    // define database layer styles for points, lines, polygons and text
+    ps = createPointStyle(10, Color.BLUE, 0.2f, 0.5f);
+    ls = createLineStyle(10, Color.GREEN, 0.05f, 0.3f, null);
+    pos = createPolygonStyle(10, Color.parseColor("#440000FF"), createLineStyle(10, Color.parseColor("#AA000000"), 0.01f, 0.3f, null));
+    ts = createTextStyle(10, Color.RED, 30, Typeface.SANS_SERIF);
+
+    showDatabaseLayer("control/Map/map", "Saved Data Layer", isEntity, queryName, querySQL, ps, ls, pos, ts);
+}
+
+initMap();
+
+
+/*** TRACKLOG ***/
+
+/*
+
+saveTimeGPSTrack() {
+    List attributes = createAttributeList();
+    attributes.add(createEntityAttribute("gps_type", "time", null, null, null));
+    saveGPSTrack(attributes);
+}
+
+saveDistanceGPSTrack() {
+    List attributes = createAttributeList();
+    attributes.add(createEntityAttribute("gps_type", "distance", null, null, null));
+    saveGPSTrack(attributes);
+}
+
+saveGPSTrack(List attributes) {
+    position = getGPSPosition();
+    if (position == null) return;
+
+    //attributes.add(createEntityAttribute("gps_user", "" + user.getUserId(), null, null, null));
+    attributes.add(createEntityAttribute("gps_timestamp", "" + getCurrentTime(), null, null, null));
+    attributes.add(createEntityAttribute("gps_longitude", "" + position.getLongitude(), null, null, null));
+    attributes.add(createEntityAttribute("gps_latitude", "" + position.getLatitude(), null, null, null));
+    //attributes.add(createEntityAttribute("gps_heading", "" + getGPSHeading(), null, null, null));
+    attributes.add(createEntityAttribute("gps_accuracy", "" + getGPSEstimatedAccuracy(), null, null, null));
+    
+    positionProj = getGPSPositionProjected();
+    Point p = new Point(new MapPos(positionProj.getLongitude(), positionProj.getLatitude()), null, (PointStyle) null, null);
+    ArrayList l = new ArrayList();
+    l.add(p);
+    
+    saveArchEnt(null, "gps_track", l, attributes);
+}
+*/
+/*** USER ***/
+
+getDefaultUsersList() {
+    users = fetchAll("select userid, fname ||' ' || lname from user");
+    return users;
+}
+
+populateListForUsers(){
+    populateDropDown("user/usertab/users", getDefaultUsersList());
+    populateRadioGroup("user/usertab/Team", makeVocab("Team"));
+
+    Object localTeam = fetchOne("select value from localSettings where key = 'Team';");
+    Object localUser = fetchOne("select value from localSettings where key = 'User';");
+
+    if (!isNull(localTeam)){
+        setFieldValue("user/usertab/Team", localTeam.get(0));
+    }
+
+    if (!isNull(localUser)){
+        setFieldValue("user/usertab/users", localUser.get(0));
+    }
+
+}
+
+populateListForUsers();
+
+String username = "";
+String device = "";
+String teamCode = "";
+
+login(){
+    if(isNull(getFieldValue("user/usertab/Team")) || isNull(getFieldValue("user/usertab/users"))){
+        showWarning("Warning", "Please select a User and an Team before logging in.");
+    } else {
+        Object userResult = fetchOne("select userid,fname,lname,email from user where userid='" + getFieldValue("user/usertab/users") + "';");
+        User user = new User(userResult.get(0),userResult.get(1),userResult.get(2),userResult.get(3));
+        userid = userResult.get(0);
+        setUser(user);
+        username = userResult.get(1) + " " + userResult.get(2);
+        showTabGroup("control");
+
+        fetchOne("REPLACE INTO localSettings(key, value) VALUES('User', '"+userid+"');");
+        fetchOne("REPLACE INTO localSettings(key, value) VALUES('Team', '"+getFieldValue("user/usertab/Team")+"');");
+
+        teamCode = fetchOne("select vocabid, vocabname from vocabulary join localSettings on (value=vocabid) where key = 'Team' ").get(1);
+    }
+
+}
+
+onEvent("user/usertab/login", "click", "login()");
+
+/*** SYNC ***/
+
+onEvent("control/Control/SyncOn", "click", "startSync()");
+onEvent("control/Control/SyncOff", "click", "stopSync()");
+
+setSyncMinInterval(10.0f);
+setSyncMaxInterval(20.0f);
+setSyncDelay(5.0f);
+
+startSync() {
+    setSyncEnabled(true);
+    setFileSyncEnabled(true);
+}
+
+stopSync() {
+    setSyncEnabled(false);
+    setFileSyncEnabled(false);
+}
+
+loadSurveyUnitAttributes();
+loadPOIAttributes();

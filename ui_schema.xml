@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:jr="http://openrosa.org/javarosa">
+
+
+  <h:head>
+    <h:title>Tracklog Demonstration</h:title>
+    <!--model lists user interface tabgroups, tabs and content of tabs-->
+    <model>
+      <instance>
+        <faims id="tracklog">
+          <style>
+            <orientation>
+              <orientation/>
+            </orientation>
+            <even>
+              <layout_weight/>
+            </even>
+            <leftBigger>
+              <layout_weight/>
+            </leftBigger>
+          </style>
+          <user>
+            <usertab>
+              <users/>
+              <Team/>
+              <login/>
+            </usertab>
+          </user>
+          <control>
+            <Search>
+              <TeamMember/>
+              <Walker/>
+              <newSurveyUnit/>
+              <newPOI/>
+              <listOfLastText/>
+              <archentsRadio/>
+              <listOfLast/>
+            </Search>
+            <Map>
+              <map/>
+            </Map>
+            <Control>
+              <internalExternalGPS/>
+              <container1>
+                <child1>
+                  <refreshText/>
+                </child1>
+                <child2>
+                  <refreshGPSButton/>
+                </child2>
+              </container1>
+              <container2>
+                <child1>
+                  <trackdistText/>
+                </child1>
+                <child2>
+                  <trackdistButton/>
+                </child2>
+              </container2>
+              <container3>
+                <child1>
+                  <tracktimeText/>
+                </child1>
+                <child2>
+                  <tracktimeButton/>
+                </child2>
+              </container3>
+              <trackOffButton/>
+              <trackStatus/>
+              <SyncOn/>
+              <SyncOff/>
+            </Control>
+          </control>
+          <Survey_Unit>
+            <Survey_Unit>
+              <Survey_Unit_ID/>
+              <Timestamp/>
+              <Total_Transect_Width/>
+              <Number_of_Walkers/>
+              <Participants/>
+              <Landscape_Element/>
+              <Vegetation_Structure/>
+              <Ground_Surface_Visibility/>
+              <Notes/>
+              <Photos/>
+              <Attach_Photo/>
+              <Update/>
+              <Delete/>
+              <New_POI/>
+              <Finish_SUI/>
+              <trackStatus/>
+            </Survey_Unit>
+          </Survey_Unit>
+          <POI>
+            <POI>
+              <POI_ID/>
+              <Feature_Type/>
+              <Notes/>
+              <Photos/>
+              <Attach_Photo/>
+              <container1>
+                <child1>
+                  <Timestamp/>
+                </child1>
+                <child2>
+                  <Recorded_By/>
+                </child2>
+              </container1>
+              <Update/>
+              <Delete/>
+            </POI>
+          </POI>
+        </faims>
+      </instance>
+      <bind nodeset="/faims/Survey_Unit/Survey_Unit/Total_Transect_Width" type="decimal"/>
+      <bind nodeset="/faims/Survey_Unit/Survey_Unit/Number_of_Walkers" type="decimal"/>
+      <bind nodeset="/faims/Survey_Unit/Survey_Unit/Notes" type="string"/>
+      <bind nodeset="/faims/POI/POI/Notes" type="string"/>
+      <bind nodeset="/faims/control/Search/Walker" type="decimal"/>
+    </model>
+  </h:head>
+  <h:body>
+    <!--Describes controls for each tabgroup and its nested tabs-->
+    <group ref="style">
+      <label/>
+      <group ref="orientation">
+        <label/>
+        <input ref="orientation">
+          <label>horizontal</label>
+        </input>
+      </group>
+      <group ref="even">
+        <label/>
+        <input ref="layout_weight">
+          <label>1</label>
+        </input>
+      </group>
+      <group ref="leftBigger">
+        <label/>
+        <input ref="layout_weight">
+          <label>2</label>
+        </input>
+      </group>
+    </group>
+    <group ref="user">
+      <label>User List</label>
+      <group ref="usertab">
+        <label>User List</label>
+        <select1 ref="users">
+          <label>Users:</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select1>
+        <select1 appearance="full" ref="Team">
+          <label>Team</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select1>
+        <trigger ref="login">
+          <label>Login</label>
+        </trigger>
+      </group>
+    </group>
+    <group ref="control" faims_scrollable="false">
+      <label>Control</label>
+      <group ref="Search" faims_scrollable="false">
+        <label>Search</label>
+        <input faims_certainty="false" faims_read_only="false" ref="TeamMember">
+          <label>Team Members</label>
+        </input>
+        <input faims_certainty="false" faims_read_only="false" ref="Walker">
+          <label>Number of Walkers</label>
+        </input>
+        <trigger ref="newSurveyUnit">
+          <label>New Survey Unit</label>
+        </trigger>
+        <trigger ref="newPOI">
+          <label>New Point of Interest</label>
+        </trigger>
+        <input faims_certainty="false" faims_read_only="false" ref="listOfLastText">
+          <label>How many records would you like to see?</label>
+        </input>
+        <select1 ref="archentsRadio" faims_annotation="false" faims_certainty="false">
+            <label/>
+            <item>
+              <label>Survey Unit</label>
+              <value>Survey Unit</value>
+            </item>
+            <item>
+              <label>Point of Interest</label>
+              <value>POI</value>
+            </item>
+        </select1>
+        <select1 appearance="compact" ref="listOfLast" faims_annotation="false" faims_certainty="false">
+            <label/>
+            <item>
+              <label>placeholder</label>
+              <value>placeholder</value>
+            </item>
+        </select1>
+      </group>
+
+      <group ref="Map" faims_scrollable="false">
+        <label>Map</label>
+         <input ref="map" faims_map="true" faims_certainty="false">
+          <label/>
+        </input>
+      </group>
+
+      <group ref="Control">
+        <label>Control</label>
+        <select1 ref="internalExternalGPS" appearance="full">
+          <label>Choose which GPS to connect to:</label>
+          <item>
+            <label>Internal</label>
+            <value>I</value>
+          </item>
+          <item>
+            <label>External</label>
+            <value>E</value>
+          </item>
+        </select1>
+        <group faims_style="orientation" ref="container1">
+          <label/>
+          <group faims_style="even" ref="child1">
+            <label/>
+            <input faims_certainty="false" faims_read_only="false" ref="refreshText">
+              <label>GPS Refresh Rate</label>
+            </input>
+          </group>
+          <group faims_style="even" ref="child2">
+            <label/>
+            <trigger ref="refreshGPSButton">
+              <label>Start GPS with Refresh Rate</label>
+            </trigger>
+          </group>
+        </group>
+        <group faims_style="orientation" ref="container2">
+          <label/>
+          <group faims_style="even" ref="child1">
+            <label/>
+            <input faims_certainty="false" faims_read_only="false" ref="trackdistText">
+              <label>Tracklog Distance Interval (m)</label>
+            </input>
+          </group>
+          <group faims_style="even" ref="child2">
+            <label/>
+            <trigger ref="trackdistButton">
+              <label>Set Tracklog Distance Interval</label>
+            </trigger>
+          </group>
+        </group>
+        <group faims_style="orientation" ref="container3">
+          <label/>
+          <group faims_style="even" ref="child1">
+            <label/>
+            <input faims_certainty="false" faims_read_only="false" ref="tracktimeText">
+              <label>Tracklog Time Interval (s)</label>
+            </input>
+          </group>
+          <group faims_style="even" ref="child2">
+            <label/>
+            <trigger ref="tracktimeButton">
+              <label>Set Tracklog Time Interval</label>
+            </trigger>
+          </group>
+        </group>
+        <trigger ref="trackOffButton">
+          <label>Tracklog Off</label>
+        </trigger>
+        <input faims_certainty="false" faims_read_only="true" ref="trackStatus">
+          <label>Track Log Status</label>
+        </input>
+        <trigger ref="SyncOn">
+          <label>Sync On</label>
+        </trigger>
+        <trigger ref="SyncOff">
+          <label>Sync Off</label>
+        </trigger>
+      </group>
+    </group>
+    <group ref="Survey_Unit" faims_archent_type="Survey Unit">
+      <label>{Survey_Unit}</label>
+      <group ref="Survey_Unit">
+        <label>{Survey_Unit}</label>
+        <input ref="Survey_Unit_ID" faims_attribute_name="Survey Unit ID" faims_attribute_type="freetext" faims_certainty="false" faims_annotation="false" faims_read_only="false">
+          <label>{Survey_Unit_ID}</label>
+        </input>
+        <input ref="Timestamp" faims_attribute_type="freetext" faims_certainty="false" faims_annotation="false" faims_read_only="true">
+          <label>{Timestamp}</label>
+        </input>
+        <input ref="Total_Transect_Width" faims_attribute_name="Total Transect Width (m)" faims_attribute_type="measure" faims_certainty="true" faims_annotation="true" faims_read_only="false">
+          <label>{Total_Transect_Width}</label>
+        </input>
+        <input ref="Number_of_Walkers" faims_attribute_name="Number of Walkers" faims_attribute_type="measure" faims_certainty="true" faims_annotation="true" faims_read_only="false">
+          <label>{Number_of_Walkers}</label>
+        </input>
+        <input ref="Participants" faims_attribute_name="Participants" faims_attribute_type="freetext" faims_certainty="true" faims_annotation="true" faims_read_only="false">
+          <label>{Participants}</label>
+        </input>
+        <select1 ref="Landscape_Element" faims_attribute_name="Landscape Element" faims_attribute_type="vocab" faims_certainty="true" faims_annotation="true" faims_read_only="false">
+          <label>{Landscape_Element}</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select1>
+        <select1 ref="Vegetation_Structure" faims_attribute_name="Vegetation Structure" faims_attribute_type="vocab" faims_certainty="true" faims_annotation="true" faims_read_only="false">
+          <label>{Vegetation_Structure}</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select1>
+        <select1 ref="Ground_Surface_Visibility" faims_attribute_name="Ground Surface Visibility" faims_attribute_type="vocab" faims_certainty="true" faims_annotation="true" faims_read_only="false">
+          <label>{Ground_Surface_Visibility}</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select1>
+        <input ref="Notes" faims_attribute_name="Notes" faims_attribute_type="freetext" faims_certainty="true" faims_annotation="false" faims_read_only="false">
+          <label>{Notes}</label>
+        </input>
+        <select type="camera" faims_sync="true" ref="Photos" faims_attribute_name="Photo" faims_attribute_type="freetext" faims_certainty="false" faims_annotation="false" faims_read_only="false">
+          <label>{Photos}</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select>
+        <trigger ref="Attach_Photo">
+          <label>{Attach_Photo}</label>
+        </trigger>
+        <trigger ref="Update">
+          <label>Save {Survey_Unit}</label>
+        </trigger>
+        <trigger ref="Delete">
+          <label>Delete {Survey_Unit}</label>
+        </trigger>
+        <trigger ref="New_POI">
+          <label>Save and New {POI}</label>
+        </trigger>
+        <trigger ref="Finish_SUI">
+          <label>Finish {Survey_Unit}</label>
+        </trigger>
+        <input faims_certainty="false" faims_read_only="true" ref="trackStatus">
+          <label>Track Log Status</label>
+        </input>
+      </group>
+    </group>
+    <group ref="POI" faims_archent_type="POI">
+      <label>{POI}</label>
+      <group ref="POI">
+        <label>{POI}</label>
+        <input ref="POI_ID" faims_attribute_name="POI ID" faims_attribute_type="freetext" faims_certainty="false" faims_annotation="false" faims_read_only="false">
+          <label>{POI_ID}</label>
+        </input>
+        <select1 ref="Feature_Type" faims_attribute_name="Feature Type" faims_attribute_type="vocab" faims_certainty="true" faims_annotation="true">
+          <label>{Feature_Type}</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select1>
+        <input ref="Notes" faims_attribute_name="Notes" faims_attribute_type="freetext" faims_certainty="true" faims_annotation="false" faims_read_only="false">
+          <label>{Notes}</label>
+        </input>
+        <select type="camera" faims_sync="true" ref="Photos" faims_attribute_name="Photo" faims_attribute_type="freetext" faims_certainty="false" faims_annotation="false" faims_read_only="false">
+          <label>{Photos}</label>
+          <item>
+            <label>placeholder</label>
+            <value>placeholder</value>
+          </item>
+        </select>
+        <trigger ref="Attach_Photo">
+          <label>{Attach_Photo}</label>
+        </trigger>
+        <group faims_style="orientation" ref="container1">
+          <label/>
+          <group faims_style="even" ref="child1">
+            <label/>
+            <input ref="Timestamp" faims_certainty="false" faims_annotation="false" faims_read_only="true">
+              <label>{Timestamp}</label>
+            </input>
+          </group>
+          <group faims_style="even" ref="child2">
+            <label/>
+            <input ref="Recorded_By" faims_certainty="false" faims_annotation="false" faims_read_only="true">
+              <label>{Recorded_By}</label>
+            </input>
+          </group>
+        </group>
+        <trigger ref="Update">
+          <label>Save {POI}</label>
+        </trigger>
+        <trigger ref="Delete">
+          <label>Delete {POI}</label>
+        </trigger>
+      </group>
+    </group>
+  </h:body>
+</h:html>

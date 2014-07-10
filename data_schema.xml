@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataSchema>
+  <RelationshipElement name="TransectSUI">
+    <description>Defines relationship between Transect and Survey Unit</description>
+  </RelationshipElement>
+  <ArchaeologicalElement name="POI">
+    <description>Autoincrement. Device ID, auto-number (e.g. POI-A-0001)</description>
+    <property name="POI ID" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>
+    <property name="Feature Type" type="enum">
+      <description>Description TBD</description>
+      <lookup>
+        <term> {Archaelogical_feature}
+          <description>Description TBD</description>
+        </term>
+        <term> {Artefact}
+          <description>Description TBD</description>
+        </term>
+        <term> {Landscape}
+          <description>Description TBD</description>
+        </term>
+        <term> {Other}
+          <description>Description TBD</description>
+        </term>
+      </lookup>
+    </property>
+    <property name="Notes" type="freetext">
+      <description>Description TBD</description>
+    </property>
+    <property name="Photo" type="file">
+      <description>Description TBD</description>
+    </property>
+  </ArchaeologicalElement>
+
+
+  <ArchaeologicalElement name="Tracklog">
+    <description></description>
+    <property name="Timestamp" type="string" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>
+   <property name="TracklogTeam" type="string" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>
+
+    <property name="Latitude" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Longitude" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Heading" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Accuracy" type="float">
+      <description>Description TBD</description>
+    </property>
+  </ArchaeologicalElement>
+  <ArchaeologicalElement name="Transect">
+    <description></description>
+    <property name="Timestamp" type="string" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>
+   <property name="TracklogTeam" type="string" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>    
+    <property name="SUID" type="freetext" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>
+    <property name="Width" type="freetext">
+      <description>Description TBD</description>
+    </property>
+    <property name="Latitude" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Longitude" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Heading" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Accuracy" type="float">
+      <description>Description TBD</description>
+    </property>
+
+  </ArchaeologicalElement>
+
+  <ArchaeologicalElement name="Survey Unit">
+    <description></description>
+    <property name="Survey Unit ID" type="freetext" isIdentifier="true">
+      <description>The current autonumbering assumes single device in field. If multiple devices are in use, uniqueness rules must be defined.</description>
+    </property>
+    <property name="Total Transect Width (m)" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Number of Walkers" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Participants" type="float">
+      <description>Description TBD</description>
+    </property>
+    <property name="Landscape Element" type="enum">
+      <description>Description TBD</description>
+      <lookup>
+        <term> {aValley}
+          <description>Description TBD</description>
+        </term>
+        <term> {bHillside}
+          <description>Description TBD</description>
+        </term>
+        <term> {cRidgeline}
+          <description>Description TBD</description>
+        </term>
+        <term> {dPlateau}
+          <description>Description TBD</description>
+        </term>
+      </lookup>
+    </property>
+    <property name="Vegetation Structure" type="enum">
+      <description>Description TBD</description>
+      <lookup>
+        <term> {aOpen_Forest}
+          <description>Description TBD</description>
+        </term>
+        <term> {bClosed_Forest}
+          <description>Description TBD</description>
+        </term>
+        <term> {cScrub}
+          <description>Description TBD</description>
+        </term>
+        <term> {dGrassland}
+          <description>Description TBD</description>
+        </term>
+        <term> {eSwamp}
+          <description>Description TBD</description>
+        </term>
+      </lookup>
+    </property>
+    <property name="Ground Surface Visibility" type="enum">
+      <description>Description TBD</description>
+      <lookup>
+        <term> {aNone}
+          <description>Description TBD</description>
+        </term>
+        <term> {bLow}
+          <description>Description TBD</description>
+        </term>
+        <term> {cGood}
+          <description>Description TBD</description>
+        </term>
+        <term> {dExcellent}
+          <description>Description TBD</description>
+        </term>
+      </lookup>
+    </property>
+    <property name="Notes" type="freetext">
+      <description>Description TBD</description>
+    </property>
+    <property name="Photo" type="file">
+      <description>Description TBD</description>
+    </property>
+    <property name="Team" type="file">
+      <description>Description TBD</description>
+      <lookup>
+       <term>A<description/></term>
+       <term>B<description/></term>
+       <term>C<description/></term>
+      </lookup>
+    </property>
+  </ArchaeologicalElement>
+</dataSchema>
