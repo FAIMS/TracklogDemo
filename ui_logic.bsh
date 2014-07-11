@@ -82,44 +82,49 @@ setFieldValue("control/Control/trackdistText", "100");
 setFieldValue("control/Control/internalExternalGPS","I");
 
 String tracklogStatus = "Tracklog is Stopped";
-tracklogState = "Stop";
+String tracklogState = "Stop";
 numTracklogPoints = 0;
 tracklogCurrentStatus = "";
 numTransectPoints = 0;
+stateAppend = "";
 
 startTimeTrack(){
     stopTrack();
     tracklogState = "Time";
     startTrackingGPS("time",  Integer.parseInt(getFieldValue("control/Control/tracktimeText")), "saveGPSTrack()");
+    updateTrackStatus();
 }
 
 startDistTrack(){
     stopTrack();
     tracklogState = "Distance";
     startTrackingGPS("distance", Integer.parseInt(getFieldValue("control/Control/trackdistText")), "saveGPSTrack()");
+    updateTrackStatus();
 }
 
 stopTrack(){
     stopTrackingGPS();
     numTracklogPoints = 0;
     numTransectPoints = 0;
-    tracklogState = "Stop";
+    tracklogState = "Stopped";
     updateTrackStatus();
 }
 
 updateTrackStatus(){
-    switch(tracklogState){
-        case "Time":
+    if (tracklogState.equals("Time"))    
             tracklogStatus = "Tracklog Started - Time: "+getFieldValue("control/Control/tracktimeText")+"s";
-        case "Distance":
+    else if (tracklogState.equals("Distance"))
             tracklogStatus = "Tracklog Started - Distance: "+getFieldValue("control/Control/trackdistText")+"m";
-        default:
-            tracklogStatus = "Tracklog is Stopped";
-    }
+    else
+            tracklogStatus = "Tracklog is "+tracklogState;
+    
     if (numTracklogPoints > 0)
         tracklogStatus += "\nNumber Tracklog Points collected: "+numTracklogPoints;
     if (numTransectPoints > 0)
         tracklogStatus += "\nNumber current transect Points collected: "+numTransectPoints;
+
+    tracklogStatus += "\nCurrent GPS Estimated Accuracy: "+ getGPSEstimatedAccuracy();
+    
 
     setFieldValue("control/Control/trackStatus", tracklogStatus);
     setFieldValue("Survey_Unit/Survey_Unit/trackStatus", tracklogStatus);
@@ -132,9 +137,12 @@ Boolean transectEnabled = false;
 
 saveGPSTrack() {
     position = getGPSPosition();
-    if (position == null) return;
+    if (position == null) {
+        tracklogState = "Bad GPS Fix";
+        return;
+    }
     numTracklogPoints++;
-    updateTrackStatus();
+    
     List attributes = createAttributeList();
     
     attributes.add(createEntityAttribute("Longitude", null, null, "" + position.getLongitude(), null));
@@ -159,6 +167,11 @@ saveGPSTrack() {
         attributes.add(createEntityAttribute("SUID", getFieldValue("Survey_Unit/Survey_Unit/Survey_Unit_ID"), null, null, null));
         attributes.add(createEntityAttribute("Width", getFieldValue("Survey_Unit/Survey_Unit/Total_Transect_Width"), null, null, null));
 
+        if (!stateAppend.equals("")){
+            attributes.add(createEntityAttribute("State", stateAppend, null, null, null));
+
+            stateAppend = "";
+        }
 
         p = new Point(new MapPos(positionProj.getLongitude(), positionProj.getLatitude()), null, (PointStyle) null, null);
         l = new ArrayList();
@@ -169,6 +182,7 @@ saveGPSTrack() {
 
         saveEntitiesToRel("TransectSUI", transect_id, survey_unit_id); 
     }
+    updateTrackStatus();
 }
 
 
@@ -184,7 +198,8 @@ onEvent("Survey_Unit/Survey_Unit/Attach_Photo", "click", "attachPictureTo(\"Surv
 
 String survey_unit_id = null;
 finishSurveyUnit(){
-    saveSurveyUnit("saveGPSTrack();transectEnabled=false;cancelTabGroup(\"Survey_Unit\", false);");
+
+    saveSurveyUnit("stateAppend=\"End\";saveGPSTrack();transectEnabled=false;cancelTabGroup(\"Survey_Unit\", false);");
 }
 newSurveyUnit(){
 
@@ -194,6 +209,7 @@ newSurveyUnit(){
         return;
     }
     survey_unit_id = null;
+    stateAppend = "Start";
     newTabGroup("Survey_Unit");
     datetime = fetchOne("select datetime('now', 'localtime');");
     setFieldValue("Survey_Unit/Survey_Unit/Timestamp", datetime.get(0));
@@ -515,6 +531,17 @@ String username = "";
 String device = "";
 String teamCode = "";
 
+showControlTab = true;
+
+onEvent("control/Search", "show", "showControl()");
+
+showControl(){
+    if (showControlTab){
+        showTab("control/Control");
+        showControlTab = false;
+    }
+}
+
 login(){
     if(isNull(getFieldValue("user/usertab/Team")) || isNull(getFieldValue("user/usertab/users"))){
         showWarning("Warning", "Please select a User and an Team before logging in.");
@@ -530,6 +557,8 @@ login(){
         fetchOne("REPLACE INTO localSettings(key, value) VALUES('Team', '"+getFieldValue("user/usertab/Team")+"');");
 
         teamCode = fetchOne("select vocabid, vocabname from vocabulary join localSettings on (value=vocabid) where key = 'Team' ").get(1);
+
+
     }
 
 }

@@ -58,13 +58,16 @@
   </ArchaeologicalElement>
   <ArchaeologicalElement name="Transect">
     <description></description>
-    <property name="Timestamp" type="string" isIdentifier="true">
+    <property name="Timestamp" type="string">
       <description>Description TBD</description>
     </property>
    <property name="TracklogTeam" type="string" isIdentifier="true">
       <description>Description TBD</description>
     </property>    
     <property name="SUID" type="freetext" isIdentifier="true">
+      <description>Description TBD</description>
+    </property>
+    <property name="State" type="freetext" isIdentifier="true">
       <description>Description TBD</description>
     </property>
     <property name="Width" type="freetext">
